@@ -1,20 +1,20 @@
 pkgname=linux-wireless-reg-unlocked
-_pkgbase=linux
+_pkgbase=linux-cachyos
 
-_kernelpkgver=7.2.7.arch1-1
+_kernelpkgver=7.2.2-1
 
 _kernver="$(
   printf '%s\n' "${_kernelpkgver}" |
-    sed 's/\.arch[0-9].*//'
+    sed 's/-.*//'
 )"
 
 _archrel="$(
   printf '%s\n' "${_kernelpkgver}" |
-    sed -E "s/^${_kernver}\.(.*)$/\1/" |
+    sed -E "s/^${_kernver}-(.*)$/\1-cachyos/" |
     tr '.' '-'
 )"
 
-_kernelmajor="${_kernver%%.*}"
+_srcname="cachyos-${_kernelpkgver}"
 _krel="${_kernver}-${_archrel}"
 
 pkgver="${_kernver}"
@@ -35,6 +35,9 @@ makedepends=(
   'bc'
   'kmod'
   'patch'
+  'clang'
+  'llvm'
+  'lld'
 )
 
 optdepends=(
@@ -49,7 +52,7 @@ conflicts=(
 )
 
 source=(
-  "https://cdn.kernel.org/pub/linux/kernel/v${_kernelmajor}.x/linux-${_kernver}.tar.xz"
+  "https://github.com/CachyOS/linux/releases/download/${_srcname}/${_srcname}.tar.gz"
   '0001-iwlwifi-add-lar_disable.patch'
   '0002-iwlwifi-nvm-unlock-6ghz-and-relax-channel-flags.patch'
   '0003-cfg80211-allow-unsigned-regdb-and-reject-driver-country-ie-regdom-hints.patch'
@@ -57,7 +60,7 @@ source=(
   'dracut-wireless-reg-unlocked.conf'
 )
 
-sha256sums=('4ac34c47db2540ffb2713943f8d891ff1702e0ba6934525a493b7d1cad43145a'
+sha256sums=('b69413e1941bc9f08d0f5bdf576b4e31ebd948a235d8b8a24a81ba7583e36d77'
             'da2ab52ccdef2b93088c9e0c56bc1c166bf748d021b529cb2af2ff6c5d9e85cc'
             '96f91b3ff8d5caafe4939cb22bb455d34d107d08e14cf3af6dbb47ef70553732'
             'e8574dead1cb1f2b3732b0daeffa5bb9d71e1cc8eee5203348bbe9169c5adbe6'
@@ -65,10 +68,10 @@ sha256sums=('4ac34c47db2540ffb2713943f8d891ff1702e0ba6934525a493b7d1cad43145a'
             '3758f059f40e24561f588829cb80384324d75b0745d5eba6f4b6313b5809e2d1')
 
 install="${pkgname}.install"
-options=(!debug)
+options=(!debug !lto)
 
 prepare() {
-  cd "${srcdir}/linux-${_kernver}"
+  cd "${srcdir}/${_srcname}"
 
   patch -Np1 \
     -i "${srcdir}/0001-iwlwifi-add-lar_disable.patch"
@@ -100,8 +103,8 @@ prepare() {
 
 build() {
   local builddir="/usr/lib/modules/${_krel}/build"
-  local iwlsrc="${srcdir}/linux-${_kernver}/drivers/net/wireless/intel/iwlwifi"
-  local cfgsrc="${srcdir}/linux-${_kernver}/net/wireless"
+  local iwlsrc="${srcdir}/${_srcname}/drivers/net/wireless/intel/iwlwifi"
+  local cfgsrc="${srcdir}/${_srcname}/net/wireless"
 
   [[ -d "${builddir}" ]] || {
     echo "ERROR: Missing kernel build directory: ${builddir}"
@@ -126,6 +129,7 @@ build() {
 
   make -C "${builddir}" \
     M="${iwlsrc}" \
+    LLVM=1 \
     KBUILD_BUILD_USER="${KBUILD_BUILD_USER}" \
     KBUILD_BUILD_HOST="${KBUILD_BUILD_HOST}" \
     KBUILD_BUILD_VERSION="${KBUILD_BUILD_VERSION}" \
@@ -134,6 +138,7 @@ build() {
 
   make -C "${builddir}" \
     M="${cfgsrc}" \
+    LLVM=1 \
     KBUILD_BUILD_USER="${KBUILD_BUILD_USER}" \
     KBUILD_BUILD_HOST="${KBUILD_BUILD_HOST}" \
     KBUILD_BUILD_VERSION="${KBUILD_BUILD_VERSION}" \
@@ -143,8 +148,8 @@ build() {
 
 package() {
   local moddir="${pkgdir}/usr/lib/modules/${_krel}/updates/${pkgname}"
-  local iwlsrc="${srcdir}/linux-${_kernver}/drivers/net/wireless/intel/iwlwifi"
-  local cfgsrc="${srcdir}/linux-${_kernver}/net/wireless"
+  local iwlsrc="${srcdir}/${_srcname}/drivers/net/wireless/intel/iwlwifi"
+  local cfgsrc="${srcdir}/${_srcname}/net/wireless"
 
   install -dm755 "${moddir}"
 

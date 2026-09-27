@@ -70,7 +70,10 @@ _rebuild_boot_artifacts() {
   depmod -a "${kver}" || depmod -a || \
     echo "==> Warning: depmod failed."
 
-  if [[ -x /usr/bin/kernel-install && -f "${vmlinuz}" ]]; then
+  if [[ -x /usr/bin/limine-mkinitcpio ]]; then
+    limine-mkinitcpio || \
+      echo "==> Warning: limine-mkinitcpio failed, please refresh boot artifacts manually."
+  elif [[ -x /usr/bin/kernel-install && -f "${vmlinuz}" ]]; then
     echo "==> Refreshing kernel-install managed entries for ${kver}..."
     kernel-install add "${kver}" "${vmlinuz}" || \
       echo "==> Warning: kernel-install failed, please refresh boot artifacts manually."
