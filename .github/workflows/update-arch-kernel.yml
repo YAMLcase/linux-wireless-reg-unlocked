@@ -16,6 +16,7 @@ concurrency:
 
 jobs:
   update:
+    if: github.repository == 'TenkyuChimata/linux-wireless-reg-unlocked'
     name: Check, build and publish
     runs-on: ubuntu-latest
 

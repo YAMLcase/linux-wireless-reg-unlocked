@@ -1,0 +1,32 @@
+# Keep synchronized with PKGBUILD; prepare() checks this before building.
+# This literal survives removal of the package's data files.
+_target_kernel='7.2.2-1-cachyos'
+
+_rebuild_boot_artifacts() {
+  echo "==> Refreshing module dependencies for ${_target_kernel}..."
+  depmod -a "${_target_kernel}" || return 1
+  # kernel-install may be present even when Limine owns the boot images.
+  if command -v limine-mkinitcpio >/dev/null 2>&1; then
+    limine-mkinitcpio || return 1
+  elif command -v dracut >/dev/null 2>&1; then
+    dracut --force --kver "${_target_kernel}" || return 1
+  elif command -v mkinitcpio >/dev/null 2>&1; then
+    mkinitcpio -P || return 1
+  else
+    echo 'ERROR: No supported initramfs builder; refresh boot images manually.' >&2
+    return 1
+  fi
+}
+
+_refresh() {
+  _rebuild_boot_artifacts || {
+    echo 'ERROR: Boot image refresh failed. Fix it before rebooting.' >&2
+    return 1
+  }
+  echo '==> Running modules and network services were left unchanged.'
+  echo '==> Reboot during a maintenance window to use the installed modules.'
+}
+
+post_install() { _refresh; }
+post_upgrade() { _refresh; }
+post_remove() { _refresh; }

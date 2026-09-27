@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+# Retained for upstream merges, not CachyOS source selection.
+if grep -q '^_pkgbase=linux-cachyos$' PKGBUILD; then
+    echo 'ERROR: This Arch updater cannot update the CachyOS package.' >&2
+    exit 1
+fi
+
 readonly API_URL="${ARCH_LINUX_PACKAGE_API:-https://archlinux.org/packages/core/x86_64/linux/json/}"
 readonly OUTPUT_FILE="${GITHUB_OUTPUT:-/dev/null}"
 
